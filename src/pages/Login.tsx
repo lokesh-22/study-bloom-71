@@ -18,16 +18,55 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-      toast({
-        title: "Welcome back!",
-        description: "You have been successfully logged in.",
+    try {
+      const response = await fetch("http://localhost:8000/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          username: email,
+          password: password,
+        }).toString(),
       });
-      navigate("/dashboard");
-    }, 1500);
+      if (response.ok) {
+        let data;
+        try {
+          data = await response.json();
+        } catch {
+          data = null;
+        }
+        if (data?.access_token) {
+          localStorage.setItem("access_token", data.access_token);
+        }
+        toast({
+          title: "Welcome back!",
+          description: "You have been successfully logged in.",
+        });
+        navigate("/dashboard");
+      } else {
+        let errorMsg = "Invalid credentials.";
+        try {
+          const errorData = await response.json();
+          errorMsg = errorData?.message || errorMsg;
+        } catch {
+          errorMsg = await response.text();
+        }
+        toast({
+          title: "Login failed",
+          description: errorMsg,
+          variant: "destructive",
+        });
+      }
+    } catch (err: any) {
+      toast({
+        title: "Login failed",
+        description: err.message || "An error occurred.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

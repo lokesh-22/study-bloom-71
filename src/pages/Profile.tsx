@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Navbar } from "@/components/Navbar";
 import { Sidebar } from "@/components/Sidebar";
-import { dummyUser, dummyAchievements } from "@/data/dummy-data";
+import { dummyAchievements } from "@/data/dummy-data";
+import { useEffect, useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid } from "recharts";
 import { 
   User, 
@@ -24,6 +25,22 @@ import {
 } from "lucide-react";
 
 const Profile = () => {
+  const [user, setUser] = useState<any>(null);
+  useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    const userId = localStorage.getItem("user_id");
+    if (token && userId) {
+      fetch(`http://localhost:8000/me?user_id=${userId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+        .then((res) => res.json())
+        .then((data) => setUser(data))
+        .catch(() => setUser(null));
+    }
+  }, []);
+
   const progressData = [
     { name: 'Week 1', study: 20 },
     { name: 'Week 2', study: 35 },
@@ -42,27 +59,15 @@ const Profile = () => {
 
   const stats = [
     {
-      title: "Total Points",
-      value: dummyUser.totalPoints.toString(),
-      icon: Trophy,
-      color: "text-warning",
-    },
-    {
-      title: "Current Streak",
-      value: `${dummyUser.streak} days`,
-      icon: Flame,
-      color: "text-destructive",
-    },
-    {
-      title: "Notes Uploaded",
-      value: "12",
-      icon: BookOpen,
+      title: "User ID",
+      value: user?.id || "-",
+      icon: User,
       color: "text-primary",
     },
     {
-      title: "Quizzes Completed",
-      value: "8",
-      icon: Brain,
+      title: "Username",
+      value: user?.username || "-",
+      icon: User,
       color: "text-success",
     },
   ];
@@ -99,17 +104,13 @@ const Profile = () => {
                   <div className="w-24 h-24 mx-auto mb-4 bg-gradient-primary rounded-full flex items-center justify-center">
                     <User className="w-12 h-12 text-white" />
                   </div>
-                  <CardTitle className="text-xl">{dummyUser.name}</CardTitle>
-                  <CardDescription>{dummyUser.email}</CardDescription>
+                  <CardTitle className="text-xl">{user?.name || "User"}</CardTitle>
+                  <CardDescription>{user?.email || "user@example.com"}</CardDescription>
+                  <div className="mt-2 text-sm text-muted-foreground">Username: {user?.username || "-"}</div>
+                  <div className="mt-2 text-sm text-muted-foreground">User ID: {user?.id || "-"}</div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="flex items-center text-muted-foreground">
-                      <Calendar className="w-4 h-4 mr-2" />
-                      Joined
-                    </span>
-                    <span>{dummyUser.joinDate}</span>
-                  </div>
+                  {/* Only personal info shown above. Remove joinDate and other non-existent fields. */}
                   <Button variant="outline" className="w-full">
                     <Settings className="w-4 h-4 mr-2" />
                     Edit Profile
@@ -281,11 +282,11 @@ const Profile = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="name">Full Name</Label>
-                      <Input id="name" defaultValue={dummyUser.name} />
+                      <Input id="name" defaultValue={user?.name || ""} />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="email">Email Address</Label>
-                      <Input id="email" type="email" defaultValue={dummyUser.email} />
+                      <Input id="email" type="email" defaultValue={user?.email || ""} />
                     </div>
                   </div>
                   <div className="flex justify-end space-x-2">

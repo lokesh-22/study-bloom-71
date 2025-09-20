@@ -8,6 +8,19 @@ interface NavbarProps {
 }
 
 export const Navbar = ({ isAuthenticated = false }: NavbarProps) => {
+  const handleLogoClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    const token = localStorage.getItem("access_token");
+    if (token) {
+      window.location.href = "/dashboard";
+    } else {
+      window.location.href = "/";
+    }
+  };
+  const handleLogout = () => {
+    localStorage.removeItem("access_token");
+    window.location.href = "/login";
+  };
   return (
     <motion.nav
       initial={{ y: -20, opacity: 0 }}
@@ -17,12 +30,12 @@ export const Navbar = ({ isAuthenticated = false }: NavbarProps) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2">
+          <a href="#" onClick={handleLogoClick} className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
               <BookOpen className="w-5 h-5 text-white" />
             </div>
             <span className="text-xl font-bold gradient-text">Learning Hub</span>
-          </Link>
+          </a>
 
           {/* Navigation Links */}
           <div className="hidden md:flex items-center space-x-8">
@@ -81,7 +94,7 @@ export const Navbar = ({ isAuthenticated = false }: NavbarProps) => {
                     Profile
                   </Button>
                 </Link>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={handleLogout}>
                   <LogOut className="w-4 h-4 mr-2" />
                   Logout
                 </Button>

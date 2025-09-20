@@ -11,6 +11,7 @@ import { toast } from "@/hooks/use-toast";
 const Signup = () => {
   const [formData, setFormData] = useState({
     name: "",
+    username: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -21,12 +22,11 @@ const Signup = () => {
   const navigate = useNavigate();
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (formData.password !== formData.confirmPassword) {
       toast({
         title: "Password mismatch",
@@ -35,18 +35,51 @@ const Signup = () => {
       });
       return;
     }
-
     setIsLoading(true);
-
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-      toast({
-        title: "Account created!",
-        description: "Welcome to Learning Hub. Let's start your journey!",
+    try {
+      const response = await fetch("http://localhost:8000/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          username: formData.username,
+          email: formData.email,
+          password: formData.password,
+        }),
       });
-      navigate("/dashboard");
-    }, 1500);
+      if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem("access_token", data.access_token);
+        toast({
+          title: "Account created!",
+          description: "Welcome to Learning Hub. Let's start your journey!",
+        });
+        navigate("/dashboard");
+      } else {
+        let errorMsg = "Signup failed.";
+        try {
+          const errorData = await response.json();
+          errorMsg = errorData?.message || errorMsg;
+        } catch {
+          errorMsg = await response.text();
+        }
+        toast({
+          title: "Signup failed",
+          description: errorMsg,
+          variant: "destructive",
+        });
+      }
+    } catch (err: any) {
+      toast({
+        title: "Signup failed",
+        description: err.message || "An error occurred.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -82,6 +115,20 @@ const Signup = () => {
                     value={formData.name}
                     onChange={(e) => handleInputChange("name", e.target.value)}
                     className="pl-10"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="username">Username</Label>
+                <div className="relative">
+                  <Input
+                    id="username"
+                    type="text"
+                    placeholder="Enter your username"
+                    value={formData.username}
+                    onChange={(e) => handleInputChange("username", e.target.value)}
+                    className="pl-4"
                     required
                   />
                 </div>
