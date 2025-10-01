@@ -6,55 +6,31 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Navbar } from "@/components/Navbar";
-import { Sidebar } from "@/components/Sidebar";
-import { dummyAchievements } from "@/data/dummy-data";
-import { useEffect, useState } from "react";
+// ...existing code...
+import { useUser } from "../context/UserContext";
 import { PieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid } from "recharts";
-import { 
-  User, 
-  Mail, 
-  Calendar,
-  Trophy,
-  Flame,
-  Target,
-  BookOpen,
-  Brain,
-  Zap,
-  TrendingUp,
-  Settings
-} from "lucide-react";
+import { User, Trophy, Settings, BookOpen, Flame, TrendingUp } from "lucide-react";
+import { dummyAchievements } from "@/data/dummy-data";
 
 const Profile = () => {
-  const [user, setUser] = useState<any>(null);
-  useEffect(() => {
-    const token = localStorage.getItem("access_token");
-    const userId = localStorage.getItem("user_id");
-    if (token && userId) {
-      fetch(`http://localhost:8000/me?user_id=${userId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-        .then((res) => res.json())
-        .then((data) => setUser(data))
-        .catch(() => setUser(null));
-    }
-  }, []);
+  const { user } = useUser();
+  // Ensure user_id is always a valid integer for queries
+  const userId = typeof user?.id === "number" ? user.id : null;
 
   const progressData = [
-    { name: 'Week 1', study: 20 },
-    { name: 'Week 2', study: 35 },
-    { name: 'Week 3', study: 45 },
-    { name: 'Week 4', study: 60 },
-    { name: 'Week 5', study: 55 },
-    { name: 'Week 6', study: 70 },
+    { name: "Week 1", study: 20 },
+    { name: "Week 2", study: 35 },
+    { name: "Week 3", study: 45 },
+    { name: "Week 4", study: 60 },
+    { name: "Week 5", study: 55 },
+    { name: "Week 6", study: 70 },
   ];
 
   const skillsData = [
-    { name: 'Machine Learning', value: 75, color: 'hsl(var(--primary))' },
-    { name: 'React', value: 60, color: 'hsl(var(--success))' },
-    { name: 'Database', value: 45, color: 'hsl(var(--warning))' },
-    { name: 'Algorithms', value: 30, color: 'hsl(var(--destructive))' },
+    { name: "Machine Learning", value: 75, color: "hsl(var(--primary))" },
+    { name: "React", value: 60, color: "hsl(var(--success))" },
+    { name: "Database", value: 45, color: "hsl(var(--warning))" },
+    { name: "Algorithms", value: 30, color: "hsl(var(--destructive))" },
   ];
 
   const stats = [
@@ -74,16 +50,8 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar isAuthenticated />
-      <Sidebar />
-      
-      <div className="ml-64 pt-16">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="p-8"
-        >
-          {/* Header */}
+      <div>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-8">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-foreground mb-2">Profile</h1>
             <p className="text-muted-foreground">
@@ -92,13 +60,9 @@ const Profile = () => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Profile Info */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="lg:col-span-1 space-y-6"
-            >
-              {/* User Card */}
+            {/* Left Column */}
+            <div className="lg:col-span-1 space-y-6">
+              {/* Profile Card */}
               <Card>
                 <CardHeader className="text-center">
                   <div className="w-24 h-24 mx-auto mb-4 bg-gradient-primary rounded-full flex items-center justify-center">
@@ -107,13 +71,22 @@ const Profile = () => {
                   <CardTitle className="text-xl">{user?.name || "User"}</CardTitle>
                   <CardDescription>{user?.email || "user@example.com"}</CardDescription>
                   <div className="mt-2 text-sm text-muted-foreground">Username: {user?.username || "-"}</div>
-                  <div className="mt-2 text-sm text-muted-foreground">User ID: {user?.id || "-"}</div>
+                  <div className="mt-2 text-sm text-muted-foreground">User ID: {userId !== null ? userId : "-"}</div>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Only personal info shown above. Remove joinDate and other non-existent fields. */}
+                <CardContent>
                   <Button variant="outline" className="w-full">
                     <Settings className="w-4 h-4 mr-2" />
                     Edit Profile
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    className="w-full mt-2"
+                    onClick={() => {
+                      localStorage.clear();
+                      window.location.href = "/login";
+                    }}
+                  >
+                    Logout
                   </Button>
                 </CardContent>
               </Card>
@@ -137,15 +110,11 @@ const Profile = () => {
                   ))}
                 </CardContent>
               </Card>
-            </motion.div>
+            </div>
 
-            {/* Main Content */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="lg:col-span-2 space-y-6"
-            >
-              {/* Progress Chart */}
+            {/* Right Column */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Learning Progress */}
               <Card>
                 <CardHeader>
                   <CardTitle>Learning Progress</CardTitle>
@@ -169,7 +138,7 @@ const Profile = () => {
                 </CardContent>
               </Card>
 
-              {/* Skills Progress */}
+              {/* Skill Levels + Study Distribution */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Card>
                   <CardHeader>
@@ -212,17 +181,6 @@ const Profile = () => {
                         </Pie>
                       </PieChart>
                     </ResponsiveContainer>
-                    <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-                      {skillsData.map((skill, index) => (
-                        <div key={index} className="flex items-center">
-                          <div 
-                            className="w-3 h-3 rounded-full mr-2" 
-                            style={{ backgroundColor: skill.color }}
-                          />
-                          <span>{skill.name}</span>
-                        </div>
-                      ))}
-                    </div>
                   </CardContent>
                 </Card>
               </div>
@@ -241,20 +199,20 @@ const Profile = () => {
                         whileHover={{ scale: 1.02 }}
                         className={`p-4 rounded-xl border-2 transition-all ${
                           achievement.earned
-                            ? 'border-primary bg-primary/5'
-                            : 'border-muted bg-muted/20'
+                            ? "border-primary bg-primary/5"
+                            : "border-muted bg-muted/20"
                         }`}
                       >
                         <div className="flex items-center space-x-4">
-                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                            achievement.earned
-                              ? 'bg-gradient-primary'
-                              : 'bg-muted'
-                          }`}>
-                            {achievement.icon === 'upload' && <BookOpen className="w-6 h-6 text-white" />}
-                            {achievement.icon === 'trophy' && <Trophy className="w-6 h-6 text-white" />}
-                            {achievement.icon === 'flame' && <Flame className="w-6 h-6 text-white" />}
-                            {achievement.icon === 'network' && <TrendingUp className="w-6 h-6 text-white" />}
+                          <div
+                            className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                              achievement.earned ? "bg-gradient-primary" : "bg-muted"
+                            }`}
+                          >
+                            {achievement.icon === "upload" && <BookOpen className="w-6 h-6 text-white" />}
+                            {achievement.icon === "trophy" && <Trophy className="w-6 h-6 text-white" />}
+                            {achievement.icon === "flame" && <Flame className="w-6 h-6 text-white" />}
+                            {achievement.icon === "network" && <TrendingUp className="w-6 h-6 text-white" />}
                           </div>
                           <div className="flex-1">
                             <h4 className="font-medium">{achievement.title}</h4>
@@ -273,31 +231,7 @@ const Profile = () => {
               </Card>
 
               {/* Account Settings */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Account Settings</CardTitle>
-                  <CardDescription>Update your personal information</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Full Name</Label>
-                      <Input id="name" defaultValue={user?.name || ""} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email Address</Label>
-                      <Input id="email" type="email" defaultValue={user?.email || ""} />
-                    </div>
-                  </div>
-                  <div className="flex justify-end space-x-2">
-                    <Button variant="outline">Cancel</Button>
-                    <Button className="bg-gradient-primary hover:opacity-90">
-                      Save Changes
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+            </div>
           </div>
         </motion.div>
       </div>

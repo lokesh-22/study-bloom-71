@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Navbar } from "@/components/Navbar";
-import { Sidebar } from "@/components/Sidebar";
+// ...existing code...
 import { dummyFlashcards } from "@/data/dummy-data";
 import { Zap, RotateCcw, ChevronLeft, ChevronRight, Shuffle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
@@ -72,10 +72,7 @@ const Flashcards = () => {
   if (studyMode) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar isAuthenticated />
-        <Sidebar />
-        
-        <div className="ml-64 pt-16">
+        <div>
           <div className="p-8">
             <div className="max-w-4xl mx-auto">
               {/* Study Mode Header */}
@@ -176,10 +173,7 @@ const Flashcards = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar isAuthenticated />
-      <Sidebar />
-      
-      <div className="ml-64 pt-16">
+      <div >
         <div className="p-8">
           {/* Header */}
           <div className="mb-8">

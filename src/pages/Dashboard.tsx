@@ -3,13 +3,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Navbar } from "@/components/Navbar";
-import { Sidebar } from "@/components/Sidebar";
+// ...existing code...
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LineChart, Line } from "recharts";
-import { dummyUser, dummyNotes, dummyProgressData } from "@/data/dummy-data";
+import { dummyNotes, dummyProgressData } from "@/data/dummy-data";
+import { useUser } from "../context/UserContext";
 import { BookOpen, Brain, Zap, TrendingUp, Clock, Target } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Dashboard = () => {
+  const { user } = useUser();
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -46,25 +48,16 @@ const Dashboard = () => {
     {
       title: "Quizzes Completed",
       value: "8",
-      change: "+3 this week", 
+      change: "-1 this week",
       icon: Brain,
       color: "text-warning",
     },
-    {
-      title: "Current Streak",
-      value: `${dummyUser.streak} days`,
-      change: "Keep it up!",
-      icon: Target,
-      color: "text-destructive",
-    },
+    // Remove streak stat since 'streak' is not available in user context
   ];
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar isAuthenticated />
-      <Sidebar />
-      
-      <div className="ml-64 pt-16">
+      <div>
         <motion.div
           variants={containerVariants}
           initial="hidden"
@@ -74,7 +67,7 @@ const Dashboard = () => {
           {/* Header */}
           <motion.div variants={itemVariants} className="mb-8">
             <h1 className="text-3xl font-bold text-foreground mb-2">
-              Welcome back, {dummyUser.name}! 👋
+              Welcome back, {user?.name || user?.username || "User"}! 👋
             </h1>
             <p className="text-muted-foreground">
               Ready to continue your learning journey? Here's your progress overview.

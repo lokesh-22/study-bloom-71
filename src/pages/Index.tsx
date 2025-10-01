@@ -79,7 +79,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
+  {/* Navbar removed after login */}
       
       {/* Hero Section */}
       <section className="pt-32 pb-20 px-4 hero-gradient">

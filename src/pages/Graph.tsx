@@ -17,7 +17,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Navbar } from "@/components/Navbar";
-import { Sidebar } from "@/components/Sidebar";
+// ...existing code...
 import { dummyGraphData } from "@/data/dummy-data";
 import { Network, Zap, Shuffle, RotateCcw } from "lucide-react";
 
@@ -28,7 +28,6 @@ const Graph = () => {
     position: { x: node.x, y: node.y },
     data: { 
       label: node.label,
-      type: node.type 
     },
     type: 'default',
     style: {
@@ -98,10 +97,7 @@ const Graph = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar isAuthenticated />
-      <Sidebar />
-      
-      <div className="ml-64 pt-16">
+      <div>
         <div className="p-8">
           {/* Header */}
           <div className="mb-6">

@@ -38,6 +38,21 @@ const Login = () => {
         }
         if (data?.access_token) {
           localStorage.setItem("access_token", data.access_token);
+          // Fetch user details and store user_id
+          const userId = typeof data.user_id === "number" ? data.user_id : null;
+          if (userId !== null && !isNaN(userId)) {
+            const userRes = await fetch(`http://localhost:8000/me?user_id=${userId}`, {
+              method: "GET",
+              headers: {
+                Authorization: `Bearer ${data.access_token}`,
+              },
+            });
+            if (userRes.ok) {
+              const userData = await userRes.json();
+              localStorage.setItem("user_id", userData.id);
+              localStorage.setItem("user", JSON.stringify(userData));
+            }
+          }
         }
         toast({
           title: "Welcome back!",

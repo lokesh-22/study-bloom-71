@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+import React from "react";
+
 const navigation = [
   {
     name: "Dashboard",
@@ -44,6 +46,16 @@ const navigation = [
   },
 ];
 
+import { Outlet } from "react-router-dom";
+export const AuthLayout = () => (
+  <div className="min-h-screen flex">
+    <Sidebar />
+    <div className="flex-1 ml-64">
+      <Outlet />
+    </div>
+  </div>
+);
+
 export const Sidebar = () => {
   const location = useLocation();
 
@@ -51,16 +63,16 @@ export const Sidebar = () => {
     <motion.div
       initial={{ x: -20, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
-      className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-card border-r border-border overflow-y-auto"
+  className="fixed left-0 top-0 h-screen w-64 bg-card border-r border-border overflow-y-auto"
     >
       <div className="p-6">
         {/* Logo */}
-        <div className="flex items-center space-x-2 mb-8">
+        <Link to="/dashboard" className="flex items-center space-x-2 mb-8 focus:outline-none">
           <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
             <BookOpen className="w-5 h-5 text-white" />
           </div>
           <span className="text-lg font-bold gradient-text">Learning Hub</span>
-        </div>
+        </Link>
 
         {/* Navigation */}
         <nav className="space-y-2">
