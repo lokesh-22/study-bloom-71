@@ -2,7 +2,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
+import { ClerkProvider } from "@clerk/clerk-react";
 import Index from "./pages/Index";
 import { UserProvider } from "./context/UserContext";
 import Login from "./pages/Login";
@@ -14,37 +15,53 @@ import Flashcards from "./pages/Flashcards";
 import Graph from "./pages/Graph";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import Admin from "./pages/Admin";
 import { AuthLayout } from "@/components/Sidebar";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
+      <TooltipProvider>
       <Toaster />
       <Sonner />
-      <UserProvider>
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            {/* Authenticated routes use AuthLayout */}
-            <Route element={<AuthLayout />}>
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/notes" element={<Notes />} />
-              <Route path="/quizzes" element={<Quizzes />} />
-              <Route path="/flashcards" element={<Flashcards />} />
-              <Route path="/graph" element={<Graph />} />
-              <Route path="/profile" element={<Profile />} />
-            </Route>
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <ClerkRouterWrapper>
+            <UserProvider>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
+                {/* Authenticated routes use AuthLayout */}
+                <Route element={<AuthLayout />}>
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/notes" element={<Notes />} />
+                  <Route path="/quizzes" element={<Quizzes />} />
+                  <Route path="/flashcards" element={<Flashcards />} />
+                  <Route path="/graph" element={<Graph />} />
+                  <Route path="/profile" element={<Profile />} />
+                </Route>
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="/admin" element={<Admin />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </UserProvider>
+          </ClerkRouterWrapper>
         </BrowserRouter>
-      </UserProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
 
 export default App;
+
+// Helper wrapper to provide Clerk a navigate function from react-router
+function ClerkRouterWrapper({ children }: { children: React.ReactNode }) {
+  const navigate = useNavigate();
+  const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string | undefined;
+
+  return (
+    <ClerkProvider publishableKey={clerkPubKey} navigate={(to: string) => navigate(to)}>
+      {children}
+    </ClerkProvider>
+  );
+}

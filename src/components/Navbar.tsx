@@ -1,6 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { BookOpen, User, LogOut } from "lucide-react";
+import { useClerk } from "@clerk/clerk-react";
+import { useNavigate } from "react-router-dom";
+import { useUser } from "@/context/UserContext";
 import { motion } from "framer-motion";
 
 interface NavbarProps {
@@ -17,9 +20,20 @@ export const Navbar = ({ isAuthenticated = false }: NavbarProps) => {
       window.location.href = "/";
     }
   };
-  const handleLogout = () => {
-    localStorage.removeItem("access_token");
-    window.location.href = "/login";
+  const clerk = useClerk();
+  const navigate = useNavigate();
+  const { setUser } = useUser();
+
+  const handleLogout = async () => {
+    try {
+      // Sign out via Clerk
+      await clerk.signOut();
+    } catch (err) {
+      // ignore sign-out errors
+    }
+    // Clear app user state and navigate to landing
+    setUser(null);
+    navigate("/");
   };
   return (
     <motion.nav

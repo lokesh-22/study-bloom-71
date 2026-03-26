@@ -8,12 +8,16 @@ import { Progress } from "@/components/ui/progress";
 import { Navbar } from "@/components/Navbar";
 // ...existing code...
 import { useUser } from "../context/UserContext";
+import { useClerk } from "@clerk/clerk-react";
+import { useNavigate } from "react-router-dom";
 import { PieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid } from "recharts";
 import { User, Trophy, Settings, BookOpen, Flame, TrendingUp } from "lucide-react";
 import { dummyAchievements } from "@/data/dummy-data";
 
 const Profile = () => {
-  const { user } = useUser();
+  const { user, setUser } = useUser();
+  const clerk = useClerk();
+  const navigate = useNavigate();
   // Ensure user_id is always a valid integer for queries
   const userId = typeof user?.id === "number" ? user.id : null;
 
@@ -33,20 +37,7 @@ const Profile = () => {
     { name: "Algorithms", value: 30, color: "hsl(var(--destructive))" },
   ];
 
-  const stats = [
-    {
-      title: "User ID",
-      value: user?.id || "-",
-      icon: User,
-      color: "text-primary",
-    },
-    {
-      title: "Username",
-      value: user?.username || "-",
-      icon: User,
-      color: "text-success",
-    },
-  ];
+  // profile info displayed below (first/last/full name + email)
 
   return (
     <div className="min-h-screen bg-background">
@@ -68,10 +59,8 @@ const Profile = () => {
                   <div className="w-24 h-24 mx-auto mb-4 bg-gradient-primary rounded-full flex items-center justify-center">
                     <User className="w-12 h-12 text-white" />
                   </div>
-                  <CardTitle className="text-xl">{user?.name || "User"}</CardTitle>
+                  <CardTitle className="text-xl">{user?.full_name || user?.name || "User"}</CardTitle>
                   <CardDescription>{user?.email || "user@example.com"}</CardDescription>
-                  <div className="mt-2 text-sm text-muted-foreground">Username: {user?.username || "-"}</div>
-                  <div className="mt-2 text-sm text-muted-foreground">User ID: {userId !== null ? userId : "-"}</div>
                 </CardHeader>
                 <CardContent>
                   <Button variant="outline" className="w-full">
@@ -81,33 +70,45 @@ const Profile = () => {
                   <Button
                     variant="destructive"
                     className="w-full mt-2"
-                    onClick={() => {
-                      localStorage.clear();
-                      window.location.href = "/login";
+                    onClick={async () => {
+                      try {
+                        await clerk.signOut();
+                      } catch (err) {
+                        // ignore sign-out errors
+                      }
+                      setUser(null);
+                      navigate("/");
                     }}
                   >
                     Logout
                   </Button>
+
+                  
                 </CardContent>
               </Card>
 
-              {/* Quick Stats */}
+              {/* Profile Info */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Quick Stats</CardTitle>
+                  <CardTitle className="text-lg">Profile Info</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  {stats.map((stat, index) => (
-                    <div key={index} className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className={`p-2 rounded-lg bg-muted ${stat.color}`}>
-                          <stat.icon className="w-4 h-4" />
-                        </div>
-                        <span className="text-sm font-medium">{stat.title}</span>
-                      </div>
-                      <span className="font-bold">{stat.value}</span>
-                    </div>
-                  ))}
+                <CardContent className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>First Name</span>
+                    <span className="font-bold">{user?.first_name || "-"}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Last Name</span>
+                    <span className="font-bold">{user?.last_name || "-"}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Full Name</span>
+                    <span className="font-bold">{user?.full_name || "-"}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Email</span>
+                    <span className="font-bold">{user?.email || "-"}</span>
+                  </div>
                 </CardContent>
               </Card>
             </div>

@@ -46,15 +46,23 @@ const navigation = [
   },
 ];
 
-import { Outlet } from "react-router-dom";
-export const AuthLayout = () => (
-  <div className="min-h-screen flex">
-    <Sidebar />
-    <div className="flex-1 ml-64">
-      <Outlet />
+import { Outlet, Navigate } from "react-router-dom";
+import { useAuth } from "@clerk/clerk-react";
+
+export const AuthLayout = () => {
+  const { isSignedIn, isLoaded } = useAuth();
+  if (!isLoaded) return null;
+  if (!isSignedIn) return <Navigate to="/login" replace />;
+
+  return (
+    <div className="min-h-screen flex">
+      <Sidebar />
+      <div className="flex-1 ml-64">
+        <Outlet />
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export const Sidebar = () => {
   const location = useLocation();

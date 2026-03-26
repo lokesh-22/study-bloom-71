@@ -7,11 +7,57 @@ import { Navbar } from "@/components/Navbar";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LineChart, Line } from "recharts";
 import { dummyNotes, dummyProgressData } from "@/data/dummy-data";
 import { useUser } from "../context/UserContext";
+import { useStudyTimer } from "@/hooks/use-study-timer";
 import { BookOpen, Brain, Zap, TrendingUp, Clock, Target } from "lucide-react";
+import { useAuth } from "@clerk/clerk-react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 const Dashboard = () => {
   const { user } = useUser();
+  useStudyTimer(Boolean(user?.id));
+  const { getToken, isLoaded } = useAuth();
+  const [studyHours, setStudyHours] = useState<string | null>(null);
+  const [studyChartData, setStudyChartData] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!user?.id || !isLoaded) return;
+    let mounted = true;
+    (async () => {
+      try {
+        const token = await getToken();
+        const resp = await fetch(`http://localhost:8000/study/summary/quick?days=7`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!resp.ok) throw new Error("failed");
+        const data = await resp.json();
+        if (!mounted) return;
+        setStudyHours(`${data.hours}h`);
+      } catch (e) {
+        console.error(e);
+        setStudyHours(null);
+      }
+    })();
+    // fetch chart data
+    (async () => {
+      try {
+        const token = await getToken();
+        const resp = await fetch(`http://localhost:8000/study/summary/chart?days=7`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!resp.ok) throw new Error("chart failed");
+        const d = await resp.json();
+        if (!mounted) return;
+        setStudyChartData(Array.isArray(d.data) ? d.data.map((r: any) => ({ date: r.date.slice(5), hours: r.hours })) : []);
+      } catch (e) {
+        console.error(e);
+        setStudyChartData([]);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [user?.id, isLoaded, getToken]);
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -33,7 +79,7 @@ const Dashboard = () => {
   const stats = [
     {
       title: "Study Hours",
-      value: "24.5h",
+      value: studyHours || "-",
       change: "+12%",
       icon: Clock,
       color: "text-primary",
@@ -67,7 +113,7 @@ const Dashboard = () => {
           {/* Header */}
           <motion.div variants={itemVariants} className="mb-8">
             <h1 className="text-3xl font-bold text-foreground mb-2">
-              Welcome back, {user?.name || user?.username || "User"}! 👋
+              Welcome back, {user?.first_name || (user?.full_name ? user.full_name.split(" ")[0] : (user?.name || user?.username)) || "User"}! 👋
             </h1>
             <p className="text-muted-foreground">
               Ready to continue your learning journey? Here's your progress overview.
@@ -129,6 +175,26 @@ const Dashboard = () => {
                         radius={[4, 4, 0, 0]}
                       />
                     </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Study Hours Trend */}
+            <motion.div variants={itemVariants}>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Study Hours (7 days)</CardTitle>
+                  <CardDescription>Hours spent per day</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={studyChartData}>
+                      <CartesianGrid strokeDasharray="3 3" className="opacity-20" />
+                      <XAxis dataKey="date" />
+                      <YAxis />
+                      <Line type="monotone" dataKey="hours" stroke="hsl(var(--primary))" strokeWidth={3} dot={{ r: 3 }} />
+                    </LineChart>
                   </ResponsiveContainer>
                 </CardContent>
               </Card>

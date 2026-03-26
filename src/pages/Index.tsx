@@ -3,6 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Navbar } from "@/components/Navbar";
 import { Link } from "react-router-dom";
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth, SignedOut, SignedIn } from "@clerk/clerk-react";
 import { 
   BookOpen, 
   Brain, 
@@ -17,6 +20,14 @@ import {
 } from "lucide-react";
 
 const Index = () => {
+  const navigate = useNavigate();
+  const { isSignedIn, isLoaded } = useAuth();
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    if (isSignedIn) navigate("/dashboard");
+  }, [isLoaded, isSignedIn, navigate]);
+
   const features = [
     {
       icon: Upload,
@@ -108,26 +119,33 @@ const Index = () => {
               and builds knowledge graphs to accelerate your academic success.
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Link to="/signup">
-                <Button 
-                  size="lg" 
-                  className="bg-white text-primary hover:bg-white/90 px-8 py-4 text-lg font-semibold animate-bounce-gentle"
-                >
-                  Get Started Free
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
-              </Link>
-              <Link to="/login">
-                <Button 
-                  variant="outline" 
-                  size="lg"
-                  className="border-white/30 text-white hover:bg-white/10 px-8 py-4 text-lg"
-                >
-                  Login
-                </Button>
-              </Link>
-            </div>
+            <SignedOut>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                <Link to="/signup">
+                  <Button 
+                    size="lg" 
+                    className="bg-white text-primary hover:bg-white/90 px-8 py-4 text-lg font-semibold animate-bounce-gentle"
+                  >
+                    Get Started Free
+                    <ArrowRight className="w-5 h-5 ml-2" />
+                  </Button>
+                </Link>
+                <Link to="/login">
+                  <Button 
+                    variant="outline" 
+                    size="lg"
+                    className="border-white/30 text-white hover:bg-white/10 px-8 py-4 text-lg"
+                  >
+                    Login
+                  </Button>
+                </Link>
+              </div>
+            </SignedOut>
+            <SignedIn>
+              <div className="flex justify-center">
+                <Button size="lg" className="bg-gradient-primary" onClick={() => navigate('/dashboard')}>Go to Dashboard</Button>
+              </div>
+            </SignedIn>
           </motion.div>
         </div>
       </section>

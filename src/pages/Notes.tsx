@@ -4,39 +4,45 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useUser } from "../context/UserContext";
+import { useAuth } from "@clerk/clerk-react";
 import { Upload, FileText, Calendar } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 const Notes = () => {
   const { user } = useUser();
+  const { getToken, isLoaded } = useAuth();
   const [documents, setDocuments] = useState<any[]>([]);
+  const [uploadTitle, setUploadTitle] = useState<string>("");
   const [loadingDocs, setLoadingDocs] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [dragActive, setDragActive] = useState(false);
   const [viewAll, setViewAll] = useState(false); // 👈 toggle state
 
   // Fetch documents
+  const loadDocuments = async () => {
+    if (!user?.id || !isLoaded) return;
+    setLoadingDocs(true);
+    try {
+      const token = await getToken();
+      const response = await fetch(`http://localhost:8000/notes/mine`, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) throw new Error("Failed to fetch notes");
+      const data = await response.json();
+      // API returns { ok: true, notes: [...] }
+      setDocuments(Array.isArray(data.notes) ? data.notes : []);
+    } catch (e) {
+      console.error(e);
+      setDocuments([]);
+    } finally {
+      setLoadingDocs(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchDocuments = async () => {
-      if (!user?.id) return;
-      setLoadingDocs(true);
-      try {
-        const accessToken = localStorage.getItem("access_token");
-        const response = await fetch(`http://localhost:8000/documents/user/${user.id}`, {
-          method: "GET",
-          headers: { Authorization: `Bearer ${accessToken}` },
-        });
-        if (!response.ok) throw new Error("Failed to fetch documents");
-        const data = await response.json();
-        setDocuments(data);
-      } catch {
-        setDocuments([]);
-      } finally {
-        setLoadingDocs(false);
-      }
-    };
-    fetchDocuments();
-  }, [user?.id]);
+    loadDocuments();
+  }, [user?.id, isLoaded]);
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -54,28 +60,30 @@ const Notes = () => {
   };
 
   const handleFiles = async (files: File[]) => {
-    const accessToken = localStorage.getItem("access_token");
-    if (!user?.id || !accessToken) {
+    if (!user?.id) {
       toast({ title: "Upload failed", description: "User not authenticated." });
       return;
     }
     for (const file of files) {
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("title", file.name);
-      formData.append("user_id", String(user.id));
+      if (uploadTitle) formData.append("title", uploadTitle);
       try {
-        const response = await fetch("http://localhost:8000/documents/upload", {
+        const token = await getToken();
+        const response = await fetch("http://localhost:8000/notes/upload", {
           method: "POST",
-          headers: { Authorization: `Bearer ${accessToken}` },
+          headers: { Authorization: `Bearer ${token}` },
           body: formData,
         });
         if (!response.ok) throw new Error("Upload failed");
         toast({
           title: "File uploaded successfully!",
-          description: `${file.name} has been processed and added to your notes.`,
+          description: `${file.name} has been uploaded.`,
         });
-      } catch {
+        // reload documents after successful upload
+        await loadDocuments();
+      } catch (err) {
+        console.error(err);
         toast({ title: "Upload failed", description: `${file.name} could not be uploaded.` });
       }
     }
@@ -94,7 +102,7 @@ const Notes = () => {
       if (!query) return true;
       const title = (doc.title || "").toString().toLowerCase();
       const summary = (doc.summary || "").toString().toLowerCase();
-      const fileName = doc.file_url ? doc.file_url.split("/").pop().toLowerCase() : "";
+      const fileName = doc.location ? doc.location.split(/[/\\\\]/).pop().toLowerCase() : "";
       return title.includes(query) || summary.includes(query) || fileName.includes(query);
     });
 
@@ -132,6 +140,9 @@ const Notes = () => {
                 </div>
                 <h3 className="text-lg font-semibold mb-2">Upload Study Materials</h3>
                 <p className="text-muted-foreground mb-4">Drag and drop files here, or click to browse</p>
+                <div className="max-w-md mx-auto mb-4">
+                  <Input placeholder="Optional title for uploaded files" value={uploadTitle} onChange={(e) => setUploadTitle(e.target.value)} />
+                </div>
                 <Button
                   className="bg-gradient-primary hover:opacity-90"
                   type="button"
@@ -191,12 +202,11 @@ const Notes = () => {
                         </span>
                       </div>
                       <CardTitle className="text-lg">
-                        {doc.title || (doc.file_url ? doc.file_url.replace(/^uploaded_documents[\\\/]/, "").split("/").pop() : "")}
+                        {doc.title || (doc.location ? doc.location.split(/[/\\\\]/).pop() : "")}
                       </CardTitle>
                       <CardDescription className="flex items-center text-sm">
                         <Calendar className="w-3 h-3 mr-1" />
-                        {new Date(doc.created_at).toLocaleString()} •{" "}
-                        {Math.round(doc.file_size / 1024)} KB
+                        {new Date(doc.created_at).toLocaleString()} • {doc.file_size ? `${Math.round(doc.file_size / 1024)} KB` : "-"}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -208,7 +218,7 @@ const Notes = () => {
                           {doc.status}
                         </span>
                         <a
-                          href={`/${doc.file_url}`}
+                          href={`http://localhost:8000/notes/${doc.id}/download`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="px-2 py-1 text-xs bg-primary text-white rounded-full"
