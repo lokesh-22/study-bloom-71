@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +11,7 @@ import { Navbar } from "@/components/Navbar";
 import { useUser } from "../context/UserContext";
 import { useClerk } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
+import { API_BASE } from "../lib/api";
 import { PieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid } from "recharts";
 import { User, Trophy, Settings, BookOpen, Flame, TrendingUp } from "lucide-react";
 import { dummyAchievements } from "@/data/dummy-data";
@@ -39,6 +41,46 @@ const Profile = () => {
 
   // profile info displayed below (first/last/full name + email)
 
+  const [editMode, setEditMode] = useState(false);
+  const [editFirstName, setEditFirstName] = useState<string>(user?.first_name || "");
+  const [editLastName, setEditLastName] = useState<string>(user?.last_name || "");
+  const [editEmail, setEditEmail] = useState<string>(user?.email || "");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setEditFirstName(user?.first_name || "");
+    setEditLastName(user?.last_name || "");
+    setEditEmail(user?.email || "");
+  }, [user]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const token = await clerk.getToken();
+      const res = await fetch(`${API_BASE}/auth/update`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ first_name: editFirstName, last_name: editLastName, email: editEmail }),
+      });
+      if (!res.ok) throw new Error("Failed to update profile");
+      const updated = await res.json();
+      // backend returns merged user object (or wrapper). handle both shapes
+      const newUser = updated.user ?? updated;
+      setUser(newUser);
+      try {
+        localStorage.setItem("sb_user", JSON.stringify(updated));
+      } catch (e) {}
+      setEditMode(false);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div>
@@ -63,7 +105,7 @@ const Profile = () => {
                   <CardDescription>{user?.email || "user@example.com"}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Button variant="outline" className="w-full">
+                  <Button variant="outline" className="w-full" onClick={() => setEditMode(true)}>
                     <Settings className="w-4 h-4 mr-2" />
                     Edit Profile
                   </Button>
@@ -77,6 +119,10 @@ const Profile = () => {
                         // ignore sign-out errors
                       }
                       setUser(null);
+                      try {
+                        localStorage.removeItem("sb_user");
+                        localStorage.removeItem("access_token");
+                      } catch (e) {}
                       navigate("/");
                     }}
                   >
@@ -93,22 +139,57 @@ const Profile = () => {
                   <CardTitle className="text-lg">Profile Info</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>First Name</span>
-                    <span className="font-bold">{user?.first_name || "-"}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Last Name</span>
-                    <span className="font-bold">{user?.last_name || "-"}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Full Name</span>
-                    <span className="font-bold">{user?.full_name || "-"}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Email</span>
-                    <span className="font-bold">{user?.email || "-"}</span>
-                  </div>
+                  {editMode ? (
+                    <div className="space-y-3">
+                      <div>
+                        <Label>First Name</Label>
+                        <Input value={editFirstName} onChange={(e) => setEditFirstName(e.target.value)} />
+                      </div>
+                      <div>
+                        <Label>Last Name</Label>
+                        <Input value={editLastName} onChange={(e) => setEditLastName(e.target.value)} />
+                      </div>
+                      <div>
+                        <Label>Email</Label>
+                        <Input value={editEmail} onChange={(e) => setEditEmail(e.target.value)} />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button onClick={handleSave} disabled={saving}>
+                          {saving ? "Saving..." : "Save"}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          onClick={() => {
+                            setEditMode(false);
+                            setEditFirstName(user?.first_name || "");
+                            setEditLastName(user?.last_name || "");
+                            setEditEmail(user?.email || "");
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex justify-between text-sm">
+                        <span>First Name</span>
+                        <span className="font-bold">{user?.first_name || "-"}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span>Last Name</span>
+                        <span className="font-bold">{user?.last_name || "-"}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span>Full Name</span>
+                        <span className="font-bold">{user?.full_name || "-"}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span>Email</span>
+                        <span className="font-bold">{user?.email || "-"}</span>
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </div>

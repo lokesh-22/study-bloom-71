@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth, useUser as useClerkUser } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
+import { API_BASE } from "@/lib/api";
 
 export interface User {
   id: string | number | null;
@@ -8,6 +9,7 @@ export interface User {
   first_name?: string | null;
   last_name?: string | null;
   full_name?: string | null;
+  is_admin?: boolean;
 }
 
 interface UserContextType {
@@ -18,16 +20,32 @@ interface UserContextType {
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export const UserProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    try {
+      const raw = localStorage.getItem("sb_user");
+      return raw ? (JSON.parse(raw) as User) : null;
+    } catch (e) {
+      return null;
+    }
+  });
   const { isSignedIn, isLoaded, getToken } = useAuth();
+  const { user: clerkUser, isLoaded: isClerkUserLoaded } = useClerkUser();
   const navigate = useNavigate();
 
   useEffect(() => {
     let mounted = true;
     const fetchUser = async () => {
       if (!isLoaded) return;
+      // NOTE: Do not rely on Clerk client-side public metadata for final
+      // admin decisions. Always defer to the server-merged `/me` result
+      // which persists and returns `is_admin` from the trusted DB.
       if (!isSignedIn) {
-        if (mounted) setUser(null);
+        if (mounted) {
+          setUser(null);
+          try {
+            localStorage.removeItem("sb_user");
+          } catch (e) {}
+        }
         return;
       }
 
@@ -35,7 +53,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         // Get a token from Clerk to send to backend for verification
         const token = await getToken();
         console.debug("[UserContext] Clerk token:", token);
-        const res = await fetch("http://localhost:8000/me", {
+        const res = await fetch(`${API_BASE}/me`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -54,16 +72,17 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         const data = await res.json();
         if (mounted) {
           setUser(data);
-          // If the user is an admin, redirect them to /admin instead of dashboard
           try {
-            if (data?.is_admin) {
-              const current = window.location.pathname;
-              if (current !== "/admin") {
-                navigate("/admin");
-              }
+            localStorage.setItem("sb_user", JSON.stringify(data));
+          } catch (e) {}
+          // If the backend confirms this user is an admin, redirect them
+          // to the admin UI immediately after login (server-verified).
+          if (data && data.is_admin) {
+            try {
+              navigate("/admin");
+            } catch (e) {
+              // ignore navigation failures
             }
-          } catch (e) {
-            console.debug("redirect failed", e);
           }
         }
       } catch (err) {

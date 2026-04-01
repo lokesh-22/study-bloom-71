@@ -7,11 +7,15 @@ import { useUser } from "../context/UserContext";
 import { useAuth } from "@clerk/clerk-react";
 import { Upload, FileText, Calendar } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
+import { API_BASE } from "@/lib/api";
 
 const Notes = () => {
   const { user } = useUser();
   const { getToken, isLoaded } = useAuth();
+  const navigate = useNavigate();
   const [documents, setDocuments] = useState<any[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploadTitle, setUploadTitle] = useState<string>("");
   const [loadingDocs, setLoadingDocs] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -24,14 +28,16 @@ const Notes = () => {
     setLoadingDocs(true);
     try {
       const token = await getToken();
-      const response = await fetch(`http://localhost:8000/notes/mine`, {
+      const response = await fetch(`${API_BASE}/notes`, {
         method: "GET",
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error("Failed to fetch notes");
       const data = await response.json();
-      // API returns { ok: true, notes: [...] }
-      setDocuments(Array.isArray(data.notes) ? data.notes : []);
+      // API may return an array or an object with a `notes` key
+      if (Array.isArray(data)) setDocuments(data);
+      else if (data && Array.isArray((data as any).notes)) setDocuments((data as any).notes);
+      else setDocuments([]);
     } catch (e) {
       console.error(e);
       setDocuments([]);
@@ -56,7 +62,8 @@ const Notes = () => {
     e.stopPropagation();
     setDragActive(false);
     const files = Array.from(e.dataTransfer.files);
-    handleFiles(files);
+    // store selected files and wait for explicit upload
+    setSelectedFiles(files);
   };
 
   const handleFiles = async (files: File[]) => {
@@ -70,7 +77,7 @@ const Notes = () => {
       if (uploadTitle) formData.append("title", uploadTitle);
       try {
         const token = await getToken();
-        const response = await fetch("http://localhost:8000/notes/upload", {
+        const response = await fetch(`${API_BASE}/notes/upload`, {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
           body: formData,
@@ -87,11 +94,14 @@ const Notes = () => {
         toast({ title: "Upload failed", description: `${file.name} could not be uploaded.` });
       }
     }
+    // clear selected files after upload
+    setSelectedFiles([]);
   };
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files ? Array.from(e.target.files) : [];
-    handleFiles(files);
+    // store selected files and wait for explicit "Upload" click
+    setSelectedFiles(files);
   };
 
   // Sort + Filter docs
@@ -143,14 +153,31 @@ const Notes = () => {
                 <div className="max-w-md mx-auto mb-4">
                   <Input placeholder="Optional title for uploaded files" value={uploadTitle} onChange={(e) => setUploadTitle(e.target.value)} />
                 </div>
-                <Button
-                  className="bg-gradient-primary hover:opacity-90"
-                  type="button"
-                  onClick={() => document.getElementById("file-upload-input")?.click()}
-                >
-                  <Upload className="w-4 h-4 mr-2" />
-                  Browse Files
-                </Button>
+                <div className="flex items-center justify-center gap-3">
+                  <Button
+                    className="bg-gradient-primary hover:opacity-90"
+                    type="button"
+                    onClick={() => document.getElementById("file-upload-input")?.click()}
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    Browse Files
+                  </Button>
+
+                  <Button
+                    className="bg-primary text-white"
+                    type="button"
+                    onClick={async () => {
+                      if (selectedFiles.length === 0) {
+                        toast({ title: "No files selected", description: "Please choose files to upload first." });
+                        return;
+                      }
+                      await handleFiles(selectedFiles);
+                    }}
+                  >
+                    Upload Selected
+                  </Button>
+                </div>
+
                 <input
                   id="file-upload-input"
                   type="file"
@@ -159,6 +186,18 @@ const Notes = () => {
                   onChange={handleFileInput}
                   className="hidden"
                 />
+
+                {/* Selected files preview */}
+                {selectedFiles.length > 0 && (
+                  <div className="mt-4 text-left max-w-md mx-auto">
+                    <div className="text-sm font-medium mb-1">Selected files:</div>
+                    <ul className="list-disc pl-5 text-sm text-foreground">
+                      {selectedFiles.map((f) => (
+                        <li key={f.name + f.size}>{f.name} • {Math.round(f.size / 1024)} KB</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -218,13 +257,19 @@ const Notes = () => {
                           {doc.status}
                         </span>
                         <a
-                          href={`http://localhost:8000/notes/${doc.id}/download`}
+                          href={doc.file_url || `${API_BASE}/notes/${doc.id}/download`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="px-2 py-1 text-xs bg-primary text-white rounded-full"
                         >
                           Download
                         </a>
+                        <button
+                          onClick={() => navigate(`/notes/${doc.id}`)}
+                          className="px-2 py-1 text-xs bg-muted rounded-full"
+                        >
+                          View
+                        </button>
                       </div>
                     </CardContent>
                   </Card>

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useUser } from "../context/UserContext";
 import { useAuth, useClerk } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
+import { API_BASE } from "@/lib/api";
 
 const Admin = () => {
   const [users, setUsers] = useState<any[]>([]);
@@ -20,12 +21,13 @@ const Admin = () => {
       try {
         // require Clerk token to call protected admin endpoints
         const token = await getToken();
-        const res = await fetch("http://localhost:8000/admin/users", {
+        const res = await fetch(`${API_BASE}/admin/users`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.status === 403) {
-          // Not an admin: redirect to dashboard
-          navigate("/dashboard");
+          // Not an admin: surface an error but do not navigate away
+          setError("Access denied to admin endpoints");
+          setUsers([]);
           return;
         }
         if (!res.ok) throw new Error("Failed to fetch users");
@@ -38,18 +40,23 @@ const Admin = () => {
       }
     };
 
-    // Only try loading when auth is ready and user appears to be admin
+    // Only try loading when auth is ready; any signed-in user can view this page
     if (!isLoaded) return;
     if (!user) {
       // if not signed in, navigate to login
       navigate("/login");
       return;
     }
-    if (!user?.is_admin) {
-      navigate("/dashboard");
+    // If the signed-in user is not an admin, avoid calling admin endpoints
+    // to prevent unnecessary 403 responses; show an access-denied banner instead.
+    if (user && !user.is_admin) {
+      setError("Access denied to admin endpoints");
+      setUsers([]);
+      setLoading(false);
       return;
     }
 
+    // Admin users: load protected resources
     load();
   }, [isLoaded, user]);
 
@@ -58,14 +65,18 @@ const Admin = () => {
     setError(null);
     try {
       const token = await getToken();
-      const res = await fetch("http://localhost:8000/admin/sync-users", {
+      const res = await fetch(`${API_BASE}/admin/sync-users`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (res.status === 403) {
+        setError("Access denied to sync users");
+        return;
+      }
       if (!res.ok) throw new Error("Sync failed");
       const summary = await res.json();
       // reload users after sync
-      const listRes = await fetch("http://localhost:8000/admin/users", {
+      const listRes = await fetch(`${API_BASE}/admin/users`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await listRes.json();
@@ -101,9 +112,10 @@ const Admin = () => {
             Logout
           </button>
           <button
-            className="px-3 py-1 rounded bg-primary text-white"
+            className="px-3 py-1 rounded bg-primary text-white disabled:opacity-50"
             onClick={doSync}
-            disabled={syncing}
+            disabled={syncing || !user?.is_admin}
+            title={!user?.is_admin ? "Admin only" : undefined}
           >
             {syncing ? "Syncing..." : "Sync users"}
           </button>
@@ -111,7 +123,11 @@ const Admin = () => {
       </div>
 
       {loading && <div>Loading...</div>}
-      {error && <div className="text-destructive">{error}</div>}
+      {error && (
+        <div className="mb-4 border rounded p-3 bg-red-50 border-red-200 text-destructive">
+          {error}
+        </div>
+      )}
       {!loading && !error && (
         <div className="overflow-auto">
           <table className="w-full table-auto border-collapse">

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useAuth } from "@clerk/clerk-react";
+import { API_BASE } from "@/lib/api";
 
 export function useStudyTimer(enabled: boolean) {
   const { getToken, isLoaded } = useAuth();
@@ -12,9 +13,12 @@ export function useStudyTimer(enabled: boolean) {
     async function sendHeartbeat(useBeacon = false) {
       try {
         const token = await getToken();
-        const url = "http://localhost:8000/study/ping";
+        const url = `${API_BASE}/study/ping`;
         if (useBeacon && navigator.sendBeacon) {
-          const blob = new Blob([JSON.stringify({ ts: Date.now() })], { type: "application/json" });
+          const token = await getToken().catch(() => null);
+          const body: any = { ts: Date.now() };
+          if (token) body.token = token;
+          const blob = new Blob([JSON.stringify(body)], { type: "application/json" });
           navigator.sendBeacon(url, blob);
           return;
         }

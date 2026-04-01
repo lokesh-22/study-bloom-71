@@ -10,6 +10,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import Notes from "./pages/Notes";
+import NoteDetail from "./pages/NoteDetail";
 import Quizzes from "./pages/Quizzes";
 import Flashcards from "./pages/Flashcards";
 import Graph from "./pages/Graph";
@@ -36,6 +37,7 @@ const App = () => (
                 <Route element={<AuthLayout />}>
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/notes" element={<Notes />} />
+                  <Route path="/notes/:id" element={<NoteDetail />} />
                   <Route path="/quizzes" element={<Quizzes />} />
                   <Route path="/flashcards" element={<Flashcards />} />
                   <Route path="/graph" element={<Graph />} />

@@ -13,6 +13,10 @@ pnpm-debug.log*
 .env
 .env.*
 
+# Local virtualenvs
+.venv/
+venv/
+
 # Editor directories and system files
 .DS_Store
 .idea/

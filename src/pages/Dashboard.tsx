@@ -11,6 +11,7 @@ import { useStudyTimer } from "@/hooks/use-study-timer";
 import { BookOpen, Brain, Zap, TrendingUp, Clock, Target } from "lucide-react";
 import { useAuth } from "@clerk/clerk-react";
 import { useEffect, useState } from "react";
+import { API_BASE } from "@/lib/api";
 import { Link } from "react-router-dom";
 
 const Dashboard = () => {
@@ -26,7 +27,7 @@ const Dashboard = () => {
     (async () => {
       try {
         const token = await getToken();
-        const resp = await fetch(`http://localhost:8000/study/summary/quick?days=7`, {
+        const resp = await fetch(`${API_BASE}/study/summary/quick?days=7`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!resp.ok) throw new Error("failed");
@@ -42,7 +43,7 @@ const Dashboard = () => {
     (async () => {
       try {
         const token = await getToken();
-        const resp = await fetch(`http://localhost:8000/study/summary/chart?days=7`, {
+        const resp = await fetch(`${API_BASE}/study/summary/chart?days=7`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!resp.ok) throw new Error("chart failed");

@@ -11,10 +11,11 @@ interface NavbarProps {
 }
 
 export const Navbar = ({ isAuthenticated = false }: NavbarProps) => {
+  const { user, setUser } = useUser();
+  const authenticated = isAuthenticated || Boolean(user);
   const handleLogoClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
-    const token = localStorage.getItem("access_token");
-    if (token) {
+    if (user) {
       window.location.href = "/dashboard";
     } else {
       window.location.href = "/";
@@ -22,7 +23,7 @@ export const Navbar = ({ isAuthenticated = false }: NavbarProps) => {
   };
   const clerk = useClerk();
   const navigate = useNavigate();
-  const { setUser } = useUser();
+  
 
   const handleLogout = async () => {
     try {
@@ -33,6 +34,10 @@ export const Navbar = ({ isAuthenticated = false }: NavbarProps) => {
     }
     // Clear app user state and navigate to landing
     setUser(null);
+    try {
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("sb_user");
+    } catch (e) {}
     navigate("/");
   };
   return (
@@ -53,7 +58,7 @@ export const Navbar = ({ isAuthenticated = false }: NavbarProps) => {
 
           {/* Navigation Links */}
           <div className="hidden md:flex items-center space-x-8">
-            {isAuthenticated ? (
+            {authenticated ? (
               <>
                 <Link
                   to="/dashboard"
@@ -100,7 +105,7 @@ export const Navbar = ({ isAuthenticated = false }: NavbarProps) => {
 
           {/* Auth Buttons */}
           <div className="flex items-center space-x-4">
-            {isAuthenticated ? (
+            {authenticated ? (
               <>
                 <Link to="/profile">
                   <Button variant="ghost" size="sm">
